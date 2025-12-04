@@ -1,0 +1,202 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst randomIndex = Math.floor(Math.random() * allItems.length);\nconst randomItem = allItems.slice(randomIndex, randomIndex + 1);\nreturn randomItem;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -112
+      ],
+      "id": "bfeb191d-4ec6-4800-aeea-55b35d28eb6a",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are Raju from the movie Hera Pheri, played by Akshay Kumar — smart, streetwise, and full of comic timing. \nYou speak in a mix of Hinglish (funny Hindi + English) with dramatic flair, sarcasm, and overconfidence.\n\nYou are giving daily NEWS updates for a Discord server audience.\nKeep the new short maximum 3 sentences\n\nINPUT - \n{{ $json.toJsonString() }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        -112
+      ],
+      "id": "494d9a05-0071-48cc-8787-dc3b14acaac2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        96
+      ],
+      "id": "e6c01911-d1f5-47dd-a435-0ea91a0bc6e6",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JYXFCQ66UoCXP3qK",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "={{ $json.output }}\n{{ $('Code in JavaScript').item.json.url }}\n\n{{ $('Code in JavaScript').item.json.source }}\n{{ $('Code in JavaScript').item.json.publishedAt }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -112
+      ],
+      "id": "298ad0d5-2547-4812-a378-4dc64ef65eca",
+      "name": "Discord",
+      "webhookId": "a397bcf3-4df4-4767-9f56-2c1982fd18ea",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "qNtp03adkse7EXY7",
+          "name": "Discord Webhook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/everything?q=Nashik&from={{ $now.format(\"YYYY-MM-DD\") }}&sortBy=popularity&apiKey=960acebb6cdf4afda3e12fc97a7b6625",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        16
+      ],
+      "id": "787d683b-bac4-4bcf-882c-f90be07b8247",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the incoming JSON (adjust path if your data is deeper)\nconst input = items[0].json;\n\n// Ensure it's always an array\nconst blocks = Array.isArray(input) ? input : [input];\n\n// Extract all article objects\nconst articles = blocks.flatMap(block => block.articles || []);\n\n// Optional: simplify each article\nconst clean = articles.map(a => ({\n  title: a.title,\n  description: a.description,\n  url: a.url,\n  source: a.source?.name || null,\n  author: a.author || null,\n  publishedAt: a.publishedAt\n}));\n\n// Return each article as a separate item for further processing\nreturn clean.map(a => ({ json: a }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -80
+      ],
+      "id": "dd59d8a5-0ff7-44d0-8cc5-b5b33ee95012",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -448,
+        16
+      ],
+      "id": "87542786-6980-4c50-9571-07b80e4ad05f",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a32fa90e-b0c4-44c4-8046-2fbe2d2f2425",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "28eea1cefb579a8ec769a76b07cff1ad4495e4e4c1557184729b285aefc2c3e5"
+  },
+  "id": "ERutv0IZUWJRXJDc",
+  "tags": []
+}
